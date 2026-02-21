@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../store/slices/authSlice";
+import { useGoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
 import { FaGoogle, FaEnvelope, FaLock, FaArrowRight } from "react-icons/fa";
 import loginIllustration from "../assets/loginillus.svg";
-import Logo from "../assets/logo.svg";
+import api from "../utils/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -14,52 +15,63 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  // Email / Password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      if (email && password) {
-        dispatch(
-          setCredentials({
-            name: "Test User",
-            email: email,
-            isAdmin: false,
-          }),
-        );
-        toast.success("Logged in successfully!", {
-          icon: "👋",
-          style: {
-            borderRadius: "10px",
-            background: "#1e293b",
-            color: "#fff",
-          },
-        });
-        navigate("/");
-      }
-      setIsLoading(false);
-    }, 1500);
-  };
-
-  const handleGoogleSignIn = () => {
-    setIsLoading(true);
-    // Simulate Google Sign-In
-    setTimeout(() => {
-      dispatch(
-        setCredentials({
-          name: "Google User",
-          email: "user@gmail.com",
-          isAdmin: false,
-        }),
-      );
-      toast.success("Signed in with Google!", {
-        icon: "🌐",
+    try {
+      const { data } = await api.post("/api/auth/login", { email, password });
+      dispatch(setCredentials(data));
+      toast.success("Logged in successfully!", {
+        icon: "👋",
+        style: { borderRadius: "10px", background: "#1e293b", color: "#fff" },
       });
       navigate("/");
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Login failed. Please try again.";
+      toast.error(message, {
+        style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
+
+  // Google OAuth login – passes the ID token to our backend
+  const handleGoogleSignIn = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        // tokenResponse.credential is the ID token when using popup flow
+        // For implicit / auth-code flow we get access_token – exchange it server-side
+        const { data } = await api.post("/api/auth/google", {
+          credential: tokenResponse.credential ?? tokenResponse.access_token,
+        });
+        dispatch(setCredentials(data));
+        toast.success("Signed in with Google!", {
+          icon: "🌐",
+          style: { borderRadius: "10px", background: "#1e293b", color: "#fff" },
+        });
+        navigate("/");
+      } catch (error) {
+        const message =
+          error.response?.data?.message || "Google sign-in failed.";
+        toast.error(message, {
+          style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error("Google sign-in was cancelled or failed.", {
+        style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
+      });
+    },
+    flow: "implicit",
+  });
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9]">
@@ -72,10 +84,7 @@ const Login = () => {
               alt="Shopping illustration"
               className="w-full h-auto animate-float"
             />
-            
           </div>
-
-          {/* Background Decoration */}
           <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-72 h-72 bg-[#2563eb]/5 rounded-full blur-3xl -z-10"></div>
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#f59e0b]/5 rounded-full blur-3xl -z-10"></div>
         </div>
@@ -84,7 +93,6 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1e293b]">
               Welcome Back
             </h2>
@@ -95,7 +103,7 @@ const Login = () => {
 
           {/* Google Sign In Button */}
           <button
-            onClick={handleGoogleSignIn}
+            onClick={() => handleGoogleSignIn()}
             disabled={isLoading}
             className="w-full bg-white border-2 border-[#e2e8f0] hover:bg-[#f8fafc] 
                      text-[#1e293b] py-3 px-4 rounded-xl font-medium 

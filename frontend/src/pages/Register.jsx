@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../store/slices/authSlice';
+import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { FaGoogle, FaEnvelope, FaLock, FaUser, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa';
-import registerIllustration from '../assets/registerillus.svg'; // Reuse the same illustration
+import registerIllustration from '../assets/registerillus.svg';
+import api from '../utils/api';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -15,82 +17,84 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  // Email / Password register
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
+
     if (password !== confirmPassword) {
       toast.error('Passwords do not match!', {
         icon: '❌',
-        style: {
-          borderRadius: '10px',
-          background: '#ef4444',
-          color: '#fff',
-        },
+        style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
       });
       return;
     }
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters!', {
-        icon: '🔒',
-      });
+      toast.error('Password must be at least 6 characters!', { icon: '🔒' });
       return;
     }
 
     if (!agreeTerms) {
-      toast.error('Please agree to the Terms & Conditions', {
-        icon: '📝',
-      });
+      toast.error('Please agree to the Terms & Conditions', { icon: '📝' });
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate registration API call
-    setTimeout(() => {
-      if (name && email && password) {
-        dispatch(setCredentials({
-          name: name,
-          email: email,
-          isAdmin: false
-        }));
-        toast.success('Account created successfully!', {
-          icon: '🎉',
-          style: {
-            borderRadius: '10px',
-            background: '#10b981',
-            color: '#fff',
-          },
-        });
-        navigate('/');
-      }
+    try {
+      const { data } = await api.post('/api/auth/register', { name, email, password });
+      dispatch(setCredentials(data));
+      toast.success('Account created successfully!', {
+        icon: '🎉',
+        style: { borderRadius: '10px', background: '#10b981', color: '#fff' },
+      });
+      navigate('/');
+    } catch (error) {
+      const message =
+        error.response?.data?.message || 'Registration failed. Please try again.';
+      toast.error(message, {
+        style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
-  const handleGoogleSignUp = () => {
-    setIsLoading(true);
-    // Simulate Google Sign-Up
-    setTimeout(() => {
-      dispatch(
-        setCredentials({
-          name: "Google User",
-          email: "user@gmail.com",
-          isAdmin: false,
-        }),
-      );
-      toast.success("Signed up with Google!", {
-        icon: "🌐",
+  // Google OAuth sign-up / sign-in
+  const handleGoogleSignUp = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
+      try {
+        const { data } = await api.post('/api/auth/google', {
+          credential: tokenResponse.credential ?? tokenResponse.access_token,
+        });
+        dispatch(setCredentials(data));
+        toast.success('Signed up with Google!', {
+          icon: '🌐',
+          style: { borderRadius: '10px', background: '#10b981', color: '#fff' },
+        });
+        navigate('/');
+      } catch (error) {
+        const message =
+          error.response?.data?.message || 'Google sign-up failed.';
+        toast.error(message, {
+          style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: () => {
+      toast.error('Google sign-up was cancelled or failed.', {
+        style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
       });
-      navigate("/");
-      setIsLoading(false);
-    }, 1500);
-  };
+    },
+    flow: 'implicit',
+  });
 
   // Password strength checker
   const getPasswordStrength = () => {
@@ -104,11 +108,11 @@ const Register = () => {
 
     const strengths = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
     const colors = ['#ef4444', '#f97316', '#eab308', '#10b981', '#2563eb'];
-    
+
     return {
       text: strengths[strength - 1] || 'Very Weak',
       color: colors[strength - 1] || '#ef4444',
-      width: `${strength * 20}%`
+      width: `${strength * 20}%`,
     };
   };
 
@@ -117,7 +121,7 @@ const Register = () => {
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9]">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
-        
+
         {/* Left Side - Illustration */}
         <div className="hidden md:block relative">
           <div className="relative z-10">
@@ -126,10 +130,7 @@ const Register = () => {
               alt="Shopping illustration"
               className="w-full h-auto animate-float"
             />
-            
           </div>
-
-          {/* Background Decoration */}
           <div className="absolute top-1/2 -translate-y-1/2 -left-4 w-72 h-72 bg-[#10b981]/5 rounded-full blur-3xl -z-10"></div>
           <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#2563eb]/5 rounded-full blur-3xl -z-10"></div>
         </div>
@@ -138,7 +139,6 @@ const Register = () => {
         <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            
             <h2 className="text-2xl sm:text-3xl font-bold text-[#1e293b]">
               Create Account
             </h2>
@@ -149,7 +149,7 @@ const Register = () => {
 
           {/* Google Sign Up Button */}
           <button
-            onClick={handleGoogleSignUp}
+            onClick={() => handleGoogleSignUp()}
             disabled={isLoading}
             className="w-full bg-white border-2 border-[#e2e8f0] hover:bg-[#f8fafc] 
                      text-[#1e293b] py-3 px-4 rounded-xl font-medium 
@@ -226,7 +226,7 @@ const Register = () => {
                   <FaLock className="text-[#94a3b8] text-sm" />
                 </div>
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-[#e2e8f0] rounded-xl 
@@ -248,7 +248,7 @@ const Register = () => {
                   )}
                 </button>
               </div>
-              
+
               {/* Password Strength Indicator */}
               {password && (
                 <div className="mt-2">
@@ -259,11 +259,11 @@ const Register = () => {
                     </span>
                   </div>
                   <div className="w-full h-1.5 bg-[#e2e8f0] rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full rounded-full transition-all duration-300"
-                      style={{ 
+                      style={{
                         width: passwordStrength.width,
-                        backgroundColor: passwordStrength.color 
+                        backgroundColor: passwordStrength.color,
                       }}
                     ></div>
                   </div>
@@ -281,18 +281,18 @@ const Register = () => {
                   <FaLock className="text-[#94a3b8] text-sm" />
                 </div>
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className={`w-full pl-10 pr-12 py-3 border rounded-xl 
                            focus:outline-none focus:ring-2 focus:ring-[#10b981]/20
                            transition-all duration-200 bg-white text-sm
-                           ${confirmPassword && password !== confirmPassword 
-                             ? 'border-[#ef4444] focus:border-[#ef4444]' 
-                             : confirmPassword && password === confirmPassword
-                             ? 'border-[#10b981]'
-                             : 'border-[#e2e8f0]'
-                           }`}
+                           ${confirmPassword && password !== confirmPassword
+                      ? 'border-[#ef4444] focus:border-[#ef4444]'
+                      : confirmPassword && password === confirmPassword
+                        ? 'border-[#10b981]'
+                        : 'border-[#e2e8f0]'
+                    }`}
                   placeholder="Confirm your password"
                   required
                   minLength={6}
