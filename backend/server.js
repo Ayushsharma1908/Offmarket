@@ -6,23 +6,23 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/offmarket', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB Connected'))
-.catch(err => console.error('MongoDB Connection Error:', err));
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/offmarket')
+  .then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/orders', require('./routes/orders'));
+// app.use('/api/products', require('./routes/products'));
+// app.use('/api/cart', require('./routes/cart'));
+// app.use('/api/orders', require('./routes/orders'));
 
 // Basic route
 app.get('/', (req, res) => {

@@ -11,9 +11,11 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function App() {
   return (
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
     <Provider store={store}>
       <Router>
         <div className="min-h-screen flex flex-col">
@@ -43,6 +45,7 @@ function App() {
         </div>
       </Router>
     </Provider>
+    </GoogleOAuthProvider>
   );
 }
 

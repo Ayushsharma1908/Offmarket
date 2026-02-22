@@ -68,7 +68,7 @@ const Register = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     setIsLoading(true);
     try {
-      const { data } = await api.post('/api/auth/google', {
+      const { data } = await api.post('http://localhost:5000/api/auth/google', {
         credential: credentialResponse.credential,
       });
       dispatch(setCredentials(data));
