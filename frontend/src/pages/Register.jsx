@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { setCredentials } from '../store/slices/authSlice';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
-import { FaGoogle, FaEnvelope, FaLock, FaUser, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaUser, FaArrowRight, FaEye, FaEyeSlash } from 'react-icons/fa';
 import registerIllustration from '../assets/registerillus.svg';
 import api from '../utils/api';
 
@@ -64,37 +64,35 @@ const Register = () => {
     }
   };
 
-  // Google OAuth sign-up / sign-in
-  const handleGoogleSignUp = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        const { data } = await api.post('/api/auth/google', {
-          credential: tokenResponse.credential ?? tokenResponse.access_token,
-        });
-        dispatch(setCredentials(data));
-        toast.success('Signed up with Google!', {
-          icon: '🌐',
-          style: { borderRadius: '10px', background: '#10b981', color: '#fff' },
-        });
-        navigate('/');
-      } catch (error) {
-        const message =
-          error.response?.data?.message || 'Google sign-up failed.';
-        toast.error(message, {
-          style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: () => {
-      toast.error('Google sign-up was cancelled or failed.', {
+  // Google OAuth sign-up / sign-in – uses GoogleLogin component for real ID token
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const { data } = await api.post('/api/auth/google', {
+        credential: credentialResponse.credential,
+      });
+      dispatch(setCredentials(data));
+      toast.success('Signed up with Google!', {
+        icon: '🌐',
+        style: { borderRadius: '10px', background: '#10b981', color: '#fff' },
+      });
+      navigate('/');
+    } catch (error) {
+      const message =
+        error.response?.data?.message || 'Google sign-up failed.';
+      toast.error(message, {
         style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
       });
-    },
-    flow: 'implicit',
-  });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error('Google sign-up was cancelled or failed.', {
+      style: { borderRadius: '10px', background: '#ef4444', color: '#fff' },
+    });
+  };
 
   // Password strength checker
   const getPasswordStrength = () => {
@@ -148,17 +146,17 @@ const Register = () => {
           </div>
 
           {/* Google Sign Up Button */}
-          <button
-            onClick={() => handleGoogleSignUp()}
-            disabled={isLoading}
-            className="w-full bg-white border-2 border-[#e2e8f0] hover:bg-[#f8fafc] 
-                     text-[#1e293b] py-3 px-4 rounded-xl font-medium 
-                     transition-all duration-200 flex items-center justify-center gap-3 mb-4
-                     hover:border-[#10b981] hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FaGoogle className="text-[#DB4437]" />
-            <span>Continue with Google</span>
-          </button>
+          <div className="flex justify-center mb-4">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="outline"
+              size="large"
+              width="400"
+              text="signup_with"
+              shape="rectangular"
+            />
+          </div>
 
           {/* Divider */}
           <div className="relative my-6">

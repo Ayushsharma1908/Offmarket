@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../store/slices/authSlice";
 import Logo from "../assets/logo.svg";
+import toast from "react-hot-toast";
 import {
   FaSearch,
   FaShoppingBag,
@@ -11,6 +13,9 @@ import {
   FaHeart,
   FaTruck,
   FaPercent,
+  FaSignOutAlt,
+  FaBoxOpen,
+  FaChevronDown,
 } from "react-icons/fa";
 
 const Header = () => {
@@ -18,8 +23,23 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const { cartItems } = useSelector((state) => state.cart || { cartItems: [] });
   const { userInfo } = useSelector((state) => state.auth || {});
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    toast.success("Logged out successfully!", {
+      icon: "👋",
+      style: {
+        borderRadius: "10px",
+        background: "#1e293b",
+        color: "#fff",
+      },
+    });
+    navigate("/login");
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -88,41 +108,97 @@ const Header = () => {
             {/* User Menu */}
             {userInfo ? (
               <div className="relative group">
-                <button className="flex items-center gap-2 p-2 hover:bg-[#f8fafc] rounded-lg transition-colors">
-                  <div className="w-8 h-8 bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-lg flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {userInfo.name.charAt(0).toUpperCase()}
+                {/* Avatar Button */}
+                <button className="flex items-center gap-2 p-1.5 pr-3 hover:bg-[#f8fafc] rounded-xl border border-transparent hover:border-[#e2e8f0] transition-all duration-200">
+                  {/* Avatar: Google photo or initial */}
+                  {userInfo.avatar ? (
+                    <img
+                      src={userInfo.avatar}
+                      alt={userInfo.name}
+                      referrerPolicy="no-referrer"
+                      className="w-8 h-8 rounded-lg object-cover ring-2 ring-[#2563eb]/20"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-white text-sm font-semibold">
+                        {userInfo.name?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="hidden md:flex flex-col items-start leading-none">
+                    <span className="text-xs text-[#94a3b8] font-normal">Hello,</span>
+                    <span className="text-sm font-semibold text-[#1e293b]">
+                      {userInfo.name?.split(" ")[0]}
                     </span>
                   </div>
-                  <span className="hidden md:block text-sm font-medium">
-                    {userInfo.name.split(" ")[0]}
-                  </span>
+                  <FaChevronDown className="hidden md:block text-[#94a3b8] text-xs ml-0.5 group-hover:text-[#2563eb] transition-colors" />
                 </button>
 
                 {/* Dropdown */}
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-[#e2e8f0] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 hover:bg-[#f8fafc] text-sm"
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    to="/orders"
-                    className="block px-4 py-2 hover:bg-[#f8fafc] text-sm"
-                  >
-                    Orders
-                  </Link>
-                  <Link
-                    to="/wishlist"
-                    className="block px-4 py-2 hover:bg-[#f8fafc] text-sm"
-                  >
-                    Wishlist
-                  </Link>
-                  <hr className="my-1 border-[#e2e8f0]" />
-                  <button className="block w-full text-left px-4 py-2 hover:bg-[#f8fafc] text-sm text-[#ef4444]">
-                    Logout
-                  </button>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-[#e2e8f0] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 overflow-hidden">
+                  {/* User Info Header */}
+                  <div className="px-4 py-3.5 bg-gradient-to-r from-[#f8fafc] to-[#f1f5f9] border-b border-[#e2e8f0]">
+                    <div className="flex items-center gap-3">
+                      {userInfo.avatar ? (
+                        <img
+                          src={userInfo.avatar}
+                          alt={userInfo.name}
+                          referrerPolicy="no-referrer"
+                          className="w-10 h-10 rounded-xl object-cover ring-2 ring-[#2563eb]/20"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-xl flex items-center justify-center">
+                          <span className="text-white font-bold text-base">
+                            {userInfo.name?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#1e293b] truncate">
+                          {userInfo.name}
+                        </p>
+                        <p className="text-xs text-[#64748b] truncate">
+                          {userInfo.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu Items */}
+                  <div className="py-1.5">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] text-sm text-[#1e293b] transition-colors group/item"
+                    >
+                      <FaUser className="text-[#2563eb] w-4" />
+                      <span>My Profile</span>
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] text-sm text-[#1e293b] transition-colors"
+                    >
+                      <FaBoxOpen className="text-[#f59e0b] w-4" />
+                      <span>My Orders</span>
+                    </Link>
+                    <Link
+                      to="/wishlist"
+                      className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] text-sm text-[#1e293b] transition-colors"
+                    >
+                      <FaHeart className="text-[#ef4444] w-4" />
+                      <span>Wishlist</span>
+                    </Link>
+                  </div>
+
+                  {/* Logout */}
+                  <div className="border-t border-[#e2e8f0] py-1.5">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full px-4 py-2.5 hover:bg-[#fff5f5] text-sm text-[#ef4444] font-medium transition-colors"
+                    >
+                      <FaSignOutAlt className="w-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -249,7 +325,38 @@ const Header = () => {
                 🔥 Today's Deals
               </Link>
 
-              {!userInfo && (
+              {userInfo ? (
+                <>
+                  {/* Mobile User Info */}
+                  <div className="flex items-center gap-3 px-2 py-2 bg-[#f8fafc] rounded-xl mt-2">
+                    {userInfo.avatar ? (
+                      <img
+                        src={userInfo.avatar}
+                        alt={userInfo.name}
+                        referrerPolicy="no-referrer"
+                        className="w-9 h-9 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-lg flex items-center justify-center">
+                        <span className="text-white font-bold">
+                          {userInfo.name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-[#1e293b]">{userInfo.name}</p>
+                      <p className="text-xs text-[#64748b]">{userInfo.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-2 py-2 text-[#ef4444] font-medium text-sm hover:bg-[#fff5f5] rounded-lg transition-colors"
+                  >
+                    <FaSignOutAlt />
+                    Sign Out
+                  </button>
+                </>
+              ) : (
                 <Link to="/login" className="btn-primary text-center mt-2">
                   Sign In / Register
                 </Link>

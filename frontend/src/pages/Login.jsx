@@ -2,9 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "../store/slices/authSlice";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 import toast from "react-hot-toast";
-import { FaGoogle, FaEnvelope, FaLock, FaArrowRight } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaArrowRight } from "react-icons/fa";
 import loginIllustration from "../assets/loginillus.svg";
 import api from "../utils/api";
 
@@ -39,39 +39,35 @@ const Login = () => {
     }
   };
 
-  // Google OAuth login – passes the ID token to our backend
-  const handleGoogleSignIn = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setIsLoading(true);
-      try {
-        // tokenResponse.credential is the ID token when using popup flow
-        // For implicit / auth-code flow we get access_token – exchange it server-side
-        const { data } = await api.post("/api/auth/google", {
-          credential: tokenResponse.credential ?? tokenResponse.access_token,
-        });
-        dispatch(setCredentials(data));
-        toast.success("Signed in with Google!", {
-          icon: "🌐",
-          style: { borderRadius: "10px", background: "#1e293b", color: "#fff" },
-        });
-        navigate("/");
-      } catch (error) {
-        const message =
-          error.response?.data?.message || "Google sign-in failed.";
-        toast.error(message, {
-          style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onError: () => {
-      toast.error("Google sign-in was cancelled or failed.", {
+  // Google OAuth login – receives a real ID token credential from GoogleLogin component
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setIsLoading(true);
+    try {
+      const { data } = await api.post("/api/auth/google", {
+        credential: credentialResponse.credential,
+      });
+      dispatch(setCredentials(data));
+      toast.success("Signed in with Google!", {
+        icon: "🌐",
+        style: { borderRadius: "10px", background: "#1e293b", color: "#fff" },
+      });
+      navigate("/");
+    } catch (error) {
+      const message =
+        error.response?.data?.message || "Google sign-in failed.";
+      toast.error(message, {
         style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
       });
-    },
-    flow: "implicit",
-  });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast.error("Google sign-in was cancelled or failed.", {
+      style: { borderRadius: "10px", background: "#ef4444", color: "#fff" },
+    });
+  };
 
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9]">
@@ -102,17 +98,17 @@ const Login = () => {
           </div>
 
           {/* Google Sign In Button */}
-          <button
-            onClick={() => handleGoogleSignIn()}
-            disabled={isLoading}
-            className="w-full bg-white border-2 border-[#e2e8f0] hover:bg-[#f8fafc] 
-                     text-[#1e293b] py-3 px-4 rounded-xl font-medium 
-                     transition-all duration-200 flex items-center justify-center gap-3 mb-4
-                     hover:border-[#2563eb] hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FaGoogle className="text-[#DB4437]" />
-            <span>Continue with Google</span>
-          </button>
+          <div className="flex justify-center mb-4">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="outline"
+              size="large"
+              width="400"
+              text="signin_with"
+              shape="rectangular"
+            />
+          </div>
 
           {/* Divider */}
           <div className="relative my-6">
