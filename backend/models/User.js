@@ -21,15 +21,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     minlength: 6,
     select: false,
-    // Not required – Google OAuth users won't have a password
   },
   googleId: {
     type: String,
     unique: true,
-    sparse: true, // allows multiple documents with null googleId
+    sparse: true,
   },
   avatar: {
-    type: String, // Google profile picture URL
+    type: String,
   },
   isAdmin: {
     type: Boolean,
@@ -41,20 +40,26 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving (only if password was set/modified)
+
+// HASH PASSWORD
 userSchema.pre("save", async function (next) {
+
+  // skip if google user
+  if (!this.password) return next();
+
+  // skip if password not modified
   if (!this.isModified("password")) return next();
 
-  const bcrypt = require("bcryptjs");
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 
   next();
 });
 
-// Compare password method
+
+// COMPARE PASSWORD
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);

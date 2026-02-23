@@ -163,8 +163,12 @@ router.post('/google', async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(401).json({ message: 'Invalid Google token' });
+    console.error('Google auth error details:', {
+      message: error.message,
+      stack: error.stack,
+      clientId: process.env.GOOGLE_CLIENT_ID
+    });
+    res.status(401).json({ message: 'Invalid Google token', details: error.message });
   }
 });
 
